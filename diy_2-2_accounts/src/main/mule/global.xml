@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="34bad8b5-cdc6-4758-a896-9ce8bb3bc352" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="153e9968-6371-4988-b64e-f4a2be72de66" basePath="${accounts.basepath}">
+		<http:request-connection host="${accounts.host}" port="${accounts.port}" />
+	</http:request-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="4dcf9e16-eb23-4429-9088-0a78126ce463" >
+		<vm:queues >
+			<vm:queue queueName="create_account" />
+		</vm:queues>
+	</vm:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="e30a7485-dd75-44cb-961c-34c2b0f4bb50" file="config.yaml" />	
+	
+
+</mule>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="userIdSubFlow" doc:id="ed38b4c1-213e-4156-b07e-90cdf4646696" >
+		<logger level="INFO" doc:name="Logger" doc:id="924a0109-9e8f-4677-a140-16d99b2bc41a" />
+		<set-variable value="#[attributes.headers.user_id]" doc:name="userId" doc:id="d12aaeb9-34fb-483f-aa18-bf198ccf3358" variableName="userId" />
+	</sub-flow>
+	<flow name="getAccountByName" doc:id="a7ab6e9c-51c1-48ab-9d54-25ba0419a93e" >
+		<http:listener doc:name="Listener" doc:id="dc342e14-8be0-4208-a1d6-7cf695afb068" config-ref="HTTP_Listener_config" path="/accountByName"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="cac5077a-55a4-4d96-9219-87ca2f8de628" name="userIdSubFlow"/>
+		<set-variable value="#[attributes.queryParams.accName]" doc:name="accountName" doc:id="f47e5297-f4e0-4646-bd1c-f9a07bd4af14" variableName="accountName"/>
+		<http:request method="GET" doc:name="getAccountByName" doc:id="80f7a816-a6e2-40ff-bb2f-944032eb2d89" config-ref="HTTP_Request_configuration" path="/accounts">
+			<http:headers ><![CDATA[#[{
+	user_id : vars.userId,
+	client_id: "6d9e329147164bf08a2cc4eeb075252e",
+	client_secret: "B20a21B05dBb4287a7C49076D6E0d377"
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"accountName" : vars.accountName
+}]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="c5d10b13-7127-4b32-94f9-6f35ce3f8096" />
+	</flow>
+	<flow name="getAccountByType" doc:id="55d9fc8e-8c59-434e-8ebc-fc7da41d0660" >
+		<http:listener doc:name="Listener" doc:id="a2befa7e-36d7-49d7-b93d-243529279801" config-ref="HTTP_Listener_config" path="/accountByType"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="bcc1d57c-4568-4901-a383-f5fe96134787" name="userIdSubFlow"/>
+		<set-variable value="#[attributes.queryParams.accType]" doc:name="accountType" doc:id="16d8b7bc-aee8-4351-abd0-fec93ae93d1c" variableName="accountType"/>
+		<http:request method="GET" doc:name="getAccountByType" doc:id="7e3c87af-dd13-43b7-a72b-cb05ea882bca" config-ref="HTTP_Request_configuration" path="/accounts">
+			<http:headers ><![CDATA[#[{
+	user_id : vars.userId,
+	client_id: "6d9e329147164bf08a2cc4eeb075252e",
+	client_secret: "B20a21B05dBb4287a7C49076D6E0d377"
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"accountType" : vars.accountType
+}]]]></http:query-params>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="40a4febd-5aa8-4e00-b3f9-6d08e26c7c14" />
+	</flow>
+	<flow name="postAccounts" doc:id="2add8c25-893b-4227-a769-394a5b81f7ad" >
+		<http:listener doc:name="Listener" doc:id="a8e852b1-9eca-4113-b045-6f9f30e6d319" config-ref="HTTP_Listener_config" path="/accounts"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="444a68ac-8ed5-41e7-92a7-15307fa11062" name="userIdSubFlow"/>
+		<set-variable value="#[sizeOf(payload)]" doc:name="accountNumber" doc:id="575c6d03-4c69-4e3c-81bf-d6524f932373" variableName="accountNumber"/>
+		<vm:publish doc:name="create_acc_input_queue" doc:id="b959de1b-c10d-4e27-963b-3e424d3a8326" config-ref="VM_Config" queueName="create_account">
+			<vm:content ><![CDATA[#[output application/json
+---
+{
+	user_id: vars.userId,
+	accounts: payload
+}]]]></vm:content>
+		</vm:publish>
+		<ee:transform doc:name="Transform Message" doc:id="63df2b31-0f82-47ba-8f6a-5045f75337ae" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Account Submitted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="429c5646-2475-415a-9978-27e8e93bc860" />
+	</flow>
+	<flow name="read-csr-input-queue" doc:id="dcca0850-b1a2-4e24-887c-d868512b7cc8" >
+		<vm:listener queueName="create_account" doc:name="Listener" doc:id="53cbd789-3201-4b14-86f1-d66d9ff20808" config-ref="VM_Config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="b3d514bf-3a21-4c0f-bff4-2a1222a789a9" />
+		<set-variable value="#[payload.userId]" doc:name="userId" doc:id="188c08e7-1c8d-4a17-90d8-63473c5dba1a" variableName="userId"/>
+		<http:request method="POST" doc:name="postAccount" doc:id="37adb72d-da5f-4173-bbd3-def557b76340" config-ref="HTTP_Request_configuration" path="/accounts">
+			<http:headers ><![CDATA[#[{
+	user_id: vars.userId,
+	client_id: "6d9e329147164bf08a2cc4eeb075252e",
+	client_secret: "B20a21B05dBb4287a7C49076D6E0d377"
+}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="fc0961f8-9e87-4555-a7e0-0ceef408b833" />
+	</flow>
+</mule>

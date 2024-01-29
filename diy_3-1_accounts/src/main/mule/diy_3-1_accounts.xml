@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:diy_3-accounts="http://www.mulesoft.org/schema/mule/diy_3-accounts" xmlns:accounts-api="http://www.mulesoft.org/schema/mule/accounts-api"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/accounts-api http://www.mulesoft.org/schema/mule/accounts-api/current/mule-accounts-api.xsd>
+http://www.mulesoft.org/schema/mule/diy_3-accounts http://www.mulesoft.org/schema/mule/diy_3-accounts/current/mule-diy_3-accounts.xsd">
+	<diy_3-accounts:config name="DIY_3_Accounts_Config" doc:name="DIY_3_Accounts Config" doc:id="7c0a078f-1a2a-418c-8946-10f817ac6c7b" property_host="${accounts.host}" property_port="${accounts.port}" property_basePath="${accounts.basepath}" property_protocol="${accounts.protocol}" />
+	<sub-flow name="userIdSubFlow" doc:id="1ed368d7-6704-4d78-a152-ea5907cc9782" >
+		<logger level="INFO" doc:name="Logger" doc:id="8099e228-8f7d-4356-b190-0f8ba9a9e3b0" />
+		<set-variable value="#[attributes.headers.user_id]" doc:name="userId" doc:id="b85d873c-c7b0-4a72-b9b2-23ba99623e80" variableName="userId" />
+	</sub-flow>
+	<flow name="getAccountByName" doc:id="342e5a89-79a1-4027-b7d9-cef3826e636b" >
+		<http:listener doc:name="Listener" doc:id="78a0aaea-4338-4d9c-8dbb-dfb108523515" config-ref="HTTP_Listener_config" path="/accountByName"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="375daf73-e32e-467f-9509-44af8970452b" name="userIdSubFlow"/>
+		<set-variable value="#[attributes.queryParams.accName]" doc:name="accountName" doc:id="f0a11376-f109-4c09-a475-c42f1ea7f66a" variableName="accountName"/>
+		<diy_3-accounts:get-accounts doc:name="getAccountByName" doc:id="cb3eeea1-6bb3-4d2d-b0e1-f91861c7b15c" config-ref="DIY_3_Accounts_Config" account-name="#[vars.accountName]" user-id="#[vars.userId]" client-id="${accounts.client_id}" client-secret="${accounts.client_secret}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e026c692-f36f-4186-bd78-d6bb4f974d03" />
+	</flow>
+	<flow name="getAccountByType" doc:id="4642bb87-2d63-4270-b616-ebd9cf1c5027" >
+		<http:listener doc:name="Listener" doc:id="c04b2520-58a5-48a2-beb4-a9bc555eb259" config-ref="HTTP_Listener_config" path="/accountByType"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="0e2a13bd-095f-44a3-b3e2-a7e3bb9408e1" name="userIdSubFlow"/>
+		<set-variable value="#[attributes.queryParams.accType]" doc:name="accountType" doc:id="726b255a-c0aa-48e3-a2c6-6755527a6d80" variableName="accountType"/>
+		<diy_3-accounts:get-accounts doc:name="getAccountByType" doc:id="3ded7c44-2325-4daf-89f0-6addd6667472" config-ref="DIY_3_Accounts_Config" account-type="#[vars.accountType]" user-id="#[vars.userId]" client-id="${accounts.client_id}" client-secret="${accounts.client_secret}"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f3d2740d-6354-4164-87fb-d9b72998bc7e" />
+	</flow>
+	<flow name="postAccounts" doc:id="40e190e3-ab18-4cb7-b264-be28a56357d6" >
+		<http:listener doc:name="Listener" doc:id="cc05e9c9-5e73-47a2-bd50-a34b660c73a9" config-ref="HTTP_Listener_config" path="/accounts"/>
+		<flow-ref doc:name="userIdSubFlow" doc:id="7989c58d-9c55-433d-b8b8-2bf2acc2af9b" name="userIdSubFlow"/>
+		<set-variable value="#[sizeOf(payload)]" doc:name="accountNumber" doc:id="74b777e6-0930-483b-9f4e-c7e69ff629e0" variableName="accountNumber"/>
+		<vm:publish doc:name="create_acc_input_queue" doc:id="137b052a-fb90-46f0-a80d-3b6020d1f4f2" config-ref="VM_Config" queueName="create_account">
+			<vm:content ><![CDATA[#[output application/json
+---
+{
+	user_id: vars.userId,
+	accounts: payload
+}]]]></vm:content>
+		</vm:publish>
+		<ee:transform doc:name="Transform Message" doc:id="93cc943a-a9e9-4e09-86d2-b91d2f5a6b92" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "Account Submitted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="e9b9c372-5408-4b68-8391-802606af481d" />
+	</flow>
+	<flow name="read-csr-input-queue" doc:id="ca7648e0-867c-4ae1-a05d-ac6f783ecba5" >
+		<vm:listener queueName="create_account" doc:name="Listener" doc:id="c70f70a5-4c9b-490b-a0da-3680c9ae0517" config-ref="VM_Config"/>
+		<logger level="INFO" doc:name="Logger" doc:id="eefa4b7c-4749-4a96-9b02-35ca81d21275" />
+		<set-variable value="#[payload.userId]" doc:name="userId" doc:id="a51d1693-ec96-4085-94f1-850827b259ed" variableName="userId"/>
+		<diy_3-accounts:create-account doc:name="createAccount" doc:id="77bc35cd-92c1-49d6-8cc1-35070f9383c2" config-ref="DIY_3_Accounts_Config" user-id="#[payload.userId]" client-id="${accounts.client_id}" client-secret="${accounts.client_secret}">
+			<diy_3-accounts:create-account-request-data ><![CDATA[#[payload.accounts]]]></diy_3-accounts:create-account-request-data>
+		</diy_3-accounts:create-account>
+		<logger level="INFO" doc:name="Logger" doc:id="2deed902-15be-4922-9413-5235d2a7247f" />
+	</flow>
+</mule>
