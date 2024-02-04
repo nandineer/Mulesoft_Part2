@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="syncDBAccountsToCSV" doc:id="2dab65b7-03fb-4b72-b445-b894c43fd723">
+		<db:listener table="flights_customers" doc:name="accounts" doc:id="0ef6a0e3-428d-43a0-8b58-438e697db13e" config-ref="Database_Config" watermarkColumn="accountID" idColumn="accountID" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="5" timeUnit="SECONDS" />
+			</scheduling-strategy>
+		</db:listener>
+		<set-variable value='#["output/" ++ (payload.country as String) ++ "-" ++&#10;now() as String {format: "yyyyMMdd"} ++ ".csv"]' doc:name="fileName" doc:id="2161bda2-a6a8-43f8-bfad-949fd3de4441" variableName="fileName" />
+		<ee:transform doc:name="Transform Message" doc:id="4bd43be8-b150-49ce-a733-bede90c50bc2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv header=false
+---
+[payload]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<file:write doc:name="dbAccounts.csv" doc:id="99b765a8-f524-4728-8269-e94233432dee" config-ref="File_Config" path="#[vars.fileName]" mode="APPEND"/>
+		<logger level="INFO" doc:name="payload" doc:id="5d0a33c6-1217-48aa-b9b3-6f1ca3d33685" message="payload" />
+	</flow>
+</mule>

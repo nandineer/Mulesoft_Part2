@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4218c241-9466-47c2-a5b8-a6f3f30549f5" >
+		<db:my-sql-connection host="mudb.mule-training.com" port="3306" user="mule" password="mule" database="training"/>
+	</db:config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="5de4044a-2dd3-4842-8bef-36f027ce7207" >
+		<file:connection workingDir="${file.accountsDir}"/>
+	</file:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="322e0f0a-d4d0-4083-9e56-9cb2abd334a1" file="config.yaml" />
+</mule>
